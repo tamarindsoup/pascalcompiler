@@ -87,7 +87,7 @@ proc_decl
 proc_name
 	: IDENT
 	{ 
-	  generate(JMP, 0, 0, 0); nextinst++;
+	  generate(JMP, 0, 0, UNDEF); nextinst++;
 	  insert($1, nextinst ,PROC); depth++;
 	}
 	;
@@ -119,10 +119,10 @@ assignment_statement
 	;
 if_statement
         : IF condition label
-	{ generate(JPC, 0, 0, 0); nextinst++; }
+	{ generate(JPC, 0, 0, UNDEF); nextinst++; }
         THEN statement label
 	{
-	  generate(JMP, 0, 0, 0); nextinst++;
+	  generate(JMP, 0, 0, UNDEF); nextinst++;
 	  backpatch($3, nextinst);
 	}
         else_statement
@@ -134,7 +134,7 @@ else_statement
 	;
 while_statement
         : WHILE label condition label
-	{ generate(JPC, 0, 0, 0); nextinst++; }
+	{ generate(JPC, 0, 0, UNDEF); nextinst++; }
         DO statement
 	{ 
 	  generate(JMP, 0, 0, $2); nextinst++; 
@@ -155,7 +155,7 @@ for_statement
 	}
 	label
         {
-	  generate(JPC, 0, 0, 0); nextinst++; 
+	  generate(JPC, 0, 0, UNDEF); nextinst++; 
 	} 
         DO statement
 	{
@@ -175,7 +175,7 @@ proc_call_name
 	: IDENT
 	{ 
 	  item = lookup($1);
-	  generate(CAL, item->type, 0 , item->addr); nextinst++;
+	  generate(CAL, 0, 0 , item->addr); nextinst++;
 	}
 	;
 block_statement
