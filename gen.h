@@ -3,6 +3,6 @@
 
 #define UNDEF -1
 
-void generate( int, REG, REG, REG );
+int generate( int, REG, REG, REG );
 void backpatch( int, REG );
 void output( void );
