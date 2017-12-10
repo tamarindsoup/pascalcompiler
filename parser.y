@@ -175,7 +175,7 @@ proc_call_name
 	: IDENT
 	{ 
 	  item = lookup($1);
-	  generate(CAL, item->type, 0 , item->addr); nextinst++;
+	  generate(CAL, 0, 0 , item->addr); nextinst++;
 	}
 	;
 block_statement
