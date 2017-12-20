@@ -5,39 +5,36 @@
 
 #define OUTPUT "result.code"
 
-/* static char *op[] = { */
-/*   [LIT] "lit", */
-/*   [LOD] "lod", */
-/*   [STO] "sto", */
-/*   [MVX] "mvx", */
-/*   [OPR] "opr", */
-/*   [INT] "int", */
-/*   [CAL] "cal", */
-/*   [RTN] "rtn", */
-/*   [JMP] "jmp", */
-/*   [JPC] "jpc", */
-/*   [GET] "get", */
-/*   [PUT] "put", */
-/*   [GETC] "getc", */
-/*   [PUTC] "putc", */
-/* }; */
-
 typedef struct tmp{
   struct tmp *next;
   OPCODE op;
-  int num;
 } Queue;
+
+typedef struct tmp2{
+  struct tmp2 *next;
+  Queue *undef; 
+  REG linenum;
+} Stack;
 
 static Queue *head = NULL, *tail = NULL;
 
+static Stack *stack = NULL;
+
 static int linenum;
+
 static FILE *fp = NULL;
 
 static void lflush(void){
   
   Queue *ptr;
+
+  if( !fp )
+    if( !(fp = fopen(OUTPUT, "w")) ){
+      fprintf(stderr, "Cannot open file: %s", OUTPUT);
+      exit(1);
+    }
   
-  while( head != NULL ){
+  while( head ){
     if(head->op.address == UNDEF)
       break;
     fwrite(&head->op, sizeof(OPCODE), 1, fp);
@@ -50,10 +47,10 @@ static void lflush(void){
 
 int generate( int opcode, REG base, REG index, REG address){
   
-  if(head == NULL && address != UNDEF){
+  if( !head && address != UNDEF){
     
-    if(fp == NULL)
-      if( (fp = fopen(OUTPUT, "w")) == NULL ){
+    if( !fp )
+      if( !(fp = fopen(OUTPUT, "w")) ){
 	fprintf(stderr,"Cannot open file: %s", OUTPUT);
 	exit(1);
       }
@@ -66,24 +63,36 @@ int generate( int opcode, REG base, REG index, REG address){
   }
   
   else{
-    Queue *tmp;
+    Queue *ptr;
     
-    if( (tmp = (Queue*)malloc(sizeof(Queue))) == NULL  )
+    if( !(ptr = (Queue*)malloc(sizeof(Queue))) )
       exit(1);
     
-    tmp->op.opcode = opcode;
-    tmp->op.basereg = base;
-    tmp->op.indexreg = index;
-    tmp->op.address = address;
-    tmp->num = linenum;
-    tmp->next = NULL;
+    ptr->op.opcode = opcode;
+    ptr->op.basereg = base;
+    ptr->op.indexreg = index;
+    ptr->op.address = address;
+    ptr->next = NULL;
   
-    if( head == NULL ){
-      head = tail = tmp;
+    if( !head ){
+      head = tail = ptr;
     }
     else{
-      tail->next = tmp;
-      tail = tmp;
+      tail->next = ptr;
+      tail = ptr;
+    }
+
+    if( address == UNDEF ){
+      Stack *ptr2;
+
+      if( !(ptr2 = (Stack*)malloc(sizeof(Stack))) )
+	exit(1);
+
+      ptr2->linenum = linenum;
+      ptr2->undef = ptr;
+      ptr2->next = stack;
+      stack = ptr2;
+    
     }
   }
 
@@ -92,19 +101,35 @@ int generate( int opcode, REG base, REG index, REG address){
 }
 
 void backpatch( int num, REG addr){
-
-  Queue *ptr;
   
-  for(ptr = head; ptr->num < num; ptr = ptr->next);
+  Stack *ptr, *prev = NULL;
+  
+  for(ptr = stack; ptr; prev = ptr, ptr = ptr->next){
 
-  if(ptr->num == num)
-    ptr->op.address = addr;
+    if(ptr->linenum == num){
+      ptr->undef->op.address = addr;
 
+      //delete
+      if(prev){
+	prev->next = ptr->next;
+	free(ptr);
+      }
+      //pop
+      else{
+	stack = stack->next;
+	free(ptr);
+      }
+      break;
+    }
+    
+  }
+    
   lflush();
   
 }
 
 void output(){
+  lflush();
   fclose(fp);
 }
     

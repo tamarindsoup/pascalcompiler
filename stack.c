@@ -3,8 +3,16 @@
 #include <string.h>
 #include "stack.h"
 
+/* #define DEBUG */
+
+#ifdef DEBUG
 #define TITLE(s) printf("%s\nName\tAddr\tType\n"	\
 			"------------------------\n",s)
+#define PRINT print()
+#else
+#define TITLE(s)
+#define PRINT
+#endif
 
 typedef struct tmp{
   struct tmp *next;
@@ -13,7 +21,8 @@ typedef struct tmp{
 
 static Stack *stack = NULL;
 
-char *scope[] = {
+#ifdef DEBUG
+static char *scope[] = {
     [GLOB] "GLOB",
     [LOC] "LOC",
     [PROC] "PROC",
@@ -31,17 +40,18 @@ static void
 print(void)
 {
   Stack *ptr;
-  for(ptr=stack; ptr!=NULL; ptr=ptr->next)
+  for(ptr=stack; ptr; ptr=ptr->next)
     iprint(&ptr->item);
   putchar('\n');
 }
+#endif
 
 static Addr
 addrlookup(Type type)
 {
   Stack *ptr;
   for(ptr=stack;
-      ptr!=NULL;
+      ptr;
       ptr=ptr->next)
     if(ptr->item.type==type)
       return ptr->item.addr + 1;
@@ -52,17 +62,18 @@ int
 insert(char *name, Addr address, Type type)
 {
   Stack *ptr;
-  if((ptr=(Stack*)malloc(sizeof(Stack)))==NULL)
+  if( !(ptr=(Stack*)malloc(sizeof(Stack))) )
     return -1;
   ptr->next = stack;
-  if((ptr->item.name=(char*)malloc((strlen(name)+1)*sizeof(char)))==NULL)
+  if( !(ptr->item.name=(char*)malloc((strlen(name)+1)*sizeof(char))) )
     return -1;
   strcpy(ptr->item.name,name);
   ptr->item.type = type;
   ptr->item.addr = (type == PROC) ? address : addrlookup(type);
   stack = ptr;
   TITLE("INSERT");
-  print();
+  PRINT;
+
   return 0;
 }
 
@@ -71,13 +82,17 @@ Item
 {
   Stack *ptr;
   TITLE("LOOKUP");
-  for(ptr=stack;ptr!=NULL;ptr=ptr->next)
+  for(ptr=stack; ptr; ptr=ptr->next)
     if(!strcmp(ptr->item.name,name)){
+#ifdef DEBUG
       iprint(&ptr->item);
       putchar('\n');
+#endif
       return &(ptr->item);
     }
+#ifdef DEBUG
   printf("%s\tFAILED\tFAILED\n\n",name);
+#endif
   return NULL;
 }
 
@@ -90,6 +105,6 @@ delete(void){
     free(ptr);
     ptr=stack;
   }
-    TITLE("DELETE");
-  print();
+  TITLE("DELETE");
+  PRINT;
 }
